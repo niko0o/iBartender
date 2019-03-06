@@ -1,0 +1,81 @@
+{
+    "interactionModel": {
+        "languageModel": {
+            "invocationName": "bartender",
+            "intents": [
+                {
+                    "name": "AMAZON.FallbackIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.CancelIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.HelpIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.StopIntent",
+                    "samples": []
+                },
+                {
+                    "name": "AMAZON.NavigateHomeIntent",
+                    "samples": []
+                },
+                {
+                    "name": "DrinkIntent",
+                    "slots": [
+                        {
+                            "name": "drink",
+                            "type": "drinks"
+                        }
+                    ],
+                    "samples": [
+                        "make {drink}",
+                        "{drink}",
+                        "make me a {drink}"
+                    ]
+                }
+            ],
+            "types": [
+                {
+                    "name": "drinks",
+                    "values": [
+                        {
+                            "id": "maitojailla",
+                            "name": {
+                                "value": "milk with ice",
+                                "synonyms": [
+                                    "milk ice",
+                                    "ice milk",
+                                    "milk and ice"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "gintonic",
+                            "name": {
+                                "value": "gin and tonic",
+                                "synonyms": [
+                                    "drink two",
+                                    "gin tonic"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "rumandcoke",
+                            "name": {
+                                "value": "rum and coke",
+                                "synonyms": [
+                                    "drink one",
+                                    "rum coke"
+                                ]
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
