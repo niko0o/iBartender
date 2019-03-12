@@ -1,31 +1,15 @@
-/*
-  AWS IoT WiFi
-
-  This sketch securely connects to an AWS IoT using MQTT over WiFi.
-  It uses a private key stored in the ATECC508A and a public
-  certificate for SSL/TLS authetication.
-
-  It publishes a message every 5 seconds to arduino/outgoing
-  topic and subscribes to messages on the arduino/incoming
-  topic.
-
-  The circuit:
-  - Arduino MKR WiFi 1010 or MKR1000
-
-  The following tutorial on Arduino Project Hub can be used
-  to setup your AWS account and the MKR board:
-
-  https://create.arduino.cc/projecthub/132016/securely-connecting-an-arduino-mkr-wifi-1010-to-aws-iot-core-a9f365
-
-  This example code is in the public domain.
-*/
-
+#include <ArduinoJson.h>
 #include <ArduinoBearSSL.h>
 #include <ArduinoECCX08.h>
 #include <ArduinoMqttClient.h>
-#include <WiFi101.h> // change to #include <WiFi101.h> for MKR1000
+#include <WiFi101.h>
 
 #include "arduino_secrets.h"
+
+/////// Pinmappings
+const int valve0Pin = 0;
+const int valve1Pin = 1;
+const int valve2Pin = 2;
 
 /////// Enter your sensitive data in arduino_secrets.h
 const char ssid[]        = SECRET_SSID;
@@ -38,9 +22,18 @@ BearSSLClient sslClient(wifiClient); // Used for SSL/TLS connection, integrates 
 MqttClient    mqttClient(sslClient);
 
 unsigned long lastMillis = 0;
+bool requestRecipes = true;
+bool recvRdy = false;
+String receipts[255];
+int recieptCount = 0;
+String receivedMessage = "";
+//struct Drink drinks[4];
+
+StaticJsonDocument<200> doc;
+DeserializationError dsError;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   while (!Serial);
 
   if (!ECCX08.begin()) {
@@ -66,6 +59,31 @@ void setup() {
   // Set the message callback, this function is
   // called when the MQTTClient receives a message
   mqttClient.onMessage(onMessageReceived);
+
+  // parse recipes
+  /*
+  dsError = deserializeJson(doc, recipes);
+  if(dsError){
+    Serial.println("Recipe deserialization error!");
+  }else{
+    JsonObject jsonobj = doc.as<JsonObject>();
+    int i = 0;
+    for(JsonPair p : jsonobj){
+      struct Drink drnk;
+      drnk.id = p.key().c_str();
+      drnk.valve0 = p.value()["valve0"];
+      drnk.valve1 = p.value()["valve1"];
+      drnk.valve2 = p.value()["valve2"];
+      drinks[i] = drnk;
+      i++;
+    }
+    recieptCount = i;
+  }*/
+  pinMode(valve0Pin, OUTPUT);
+  pinMode(valve1Pin, OUTPUT);
+  pinMode(valve2Pin, OUTPUT);
+
+  Serial.println("Recipes parsed");
 }
 
 void loop() {
@@ -80,17 +98,39 @@ void loop() {
 
   // poll for new MQTT messages and send keep alives
   mqttClient.poll();
-
-  // publish a message roughly every 5 seconds.
-  if (millis() - lastMillis > 5000) {
-    lastMillis = millis();
-
-    publishMessage();
+  // handle booze order from AWS-IoT
+  if(recvRdy){
+    Serial.println("Recv OK");
+    recvRdy = false;
+    dsError = deserializeJson(doc, receivedMessage)  ;
+    if(dsError){
+      Serial.println("Parse error");
+    }else{
+      String drink;
+      drink = doc["drink"].as<String>();
+      Serial.println("Making drink " + drink);
+      // search drink from reciepts
+      if(drink.equals("rumandcoke")){
+        Serial.println("Rum and coke");
+        getBooze(valve2Pin, 5);
+        getBooze(valve1Pin, 5);
+      }else if(drink.equals("maitojailla")){
+        Serial.println("Maitoo jäillä");
+        getBooze(valve0Pin, 5);
+        getBooze(valve1Pin, 5);
+      }else if(drink.equals("gintonic")){
+        Serial.println("Gin tonicci");
+        getBooze(valve2Pin, 2);
+        getBooze(valve1Pin, 1);
+      }else{
+        Serial.println("failed");
+      }
+    }
   }
 }
 
 unsigned long getTime() {
-  // get the current time from the WiFi module  
+  // get the current time from the WiFi module
   return WiFi.getTime();
 }
 
@@ -126,21 +166,21 @@ void connectMQTT() {
   Serial.println();
 
   // subscribe to a topic
-  mqttClient.subscribe("arduino/incoming");
+  mqttClient.subscribe("ibartender/order");
 }
 
-void publishMessage() {
+void publishMessage(String payload, String topic) {
   Serial.println("Publishing message");
-
+  Serial.println(topic + ':' + payload);
   // send message, the Print interface can be used to set the message contents
-  mqttClient.beginMessage("arduino/outgoing");
-  mqttClient.print("hello ");
-  mqttClient.print(millis());
+  mqttClient.beginMessage(topic);
+  mqttClient.print(payload);
   mqttClient.endMessage();
 }
 
 void onMessageReceived(int messageSize) {
   // we received a message, print out the topic and contents
+  receivedMessage = "";
   Serial.print("Received a message with topic '");
   Serial.print(mqttClient.messageTopic());
   Serial.print("', length ");
@@ -149,9 +189,18 @@ void onMessageReceived(int messageSize) {
 
   // use the Stream interface to print the contents
   while (mqttClient.available()) {
-    Serial.print((char)mqttClient.read());
+    char chr = (char)mqttClient.read();
+    receivedMessage = receivedMessage + chr;
+    Serial.print(chr);
   }
+  recvRdy = true;
   Serial.println();
 
   Serial.println();
+}
+
+void getBooze(int valve, int timeInSec){
+  digitalWrite(valve, HIGH);
+  delay(1000 * timeInSec);
+  digitalWrite(valve, LOW);
 }

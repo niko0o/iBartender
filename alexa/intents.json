@@ -32,6 +32,7 @@
                         }
                     ],
                     "samples": [
+                        "make me {drink}",
                         "make {drink}",
                         "{drink}",
                         "make me a {drink}"
@@ -58,7 +59,6 @@
                             "name": {
                                 "value": "gin and tonic",
                                 "synonyms": [
-                                    "drink two",
                                     "gin tonic"
                                 ]
                             }
@@ -68,7 +68,7 @@
                             "name": {
                                 "value": "rum and coke",
                                 "synonyms": [
-                                    "drink one",
+                                    "cuba libre",
                                     "rum coke"
                                 ]
                             }

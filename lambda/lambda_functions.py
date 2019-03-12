@@ -23,18 +23,18 @@ def lambda_handler(event, context):
             return build_response(message)
     elif event['request']['intent']['name'] == "DrinkIntent":
             if event['request']['intent']['slots']['drink']['resolutions']['resolutionsPerAuthority'][0]['status']['code'] == "ER_SUCCESS_NO_MATCH":
-                message = build_PlainSpeech("I can't make that drink yet. Please try another drink")
+                message = build_PlainSpeech("Sorry, I didn't get that, or I can't make that drink yet. Please order drink, for example, \"Alexa, ask bartender to make me a rum and coke\"")
                 return build_response(message)
             else:
-                drink = event['request']['intent']['slots']['drink']['resolutions']['resolutionsPerAuthority'][0]['values'][0]['value']['name']
+                drinkName = event['request']['intent']['slots']['drink']['resolutions']['resolutionsPerAuthority'][0]['values'][0]['value']['name']
                 drinkId = event['request']['intent']['slots']['drink']['resolutions']['resolutionsPerAuthority'][0]['values'][0]['value']['id']
-                message = build_PlainSpeech("One " + drink + " coming!")
+                message = build_PlainSpeech("One " + drinkName + " coming!")
                 response = client.publish(
                     topic='ibartender/order',
-                    qos=1,
+                    qos=0,
                     payload=json.dumps({"drink":drinkId})
                 )
                 return build_response(message)
     else:
-        message = build_PlainSpeech("Sorry, I didn't get that. Please order drink, for example, \"Alexa, ask bartender to make me a rum and coke\"")
+        message = build_PlainSpeech("Sorry, I didn't get that, or I can't make drink. Please order drink, for example, \"Alexa, ask bartender to make me a rum and coke\"")
         return build_response(message)
